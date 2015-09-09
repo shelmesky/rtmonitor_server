@@ -86,60 +86,60 @@ type SystemInfo struct {
 // 内存和CPU负载信息
 type LoadInfo struct {
 	ClientKey  string  `bson:"client_key"`
-	TimeString string  `json:"time_string"`
-	MemTotal   uint64  `json:"memory_total"`
-	MemUsed    uint64  `json:"memory_used"`
-	MemFree    uint64  `json:"memory_free"`
-	MemBuffers uint64  `json:"memory_buffers"`
-	MemCached  uint64  `json:"memory_cached"`
-	LoadAVG1   float64 `json:"load_avg_1"`
-	LoadAVG5   float64 `json:"load_avg_5"`
-	LoadAVG15  float64 `json:"load_avg_15"`
+	TimeString string  `json:"time_string" bson:"time_string"`
+	MemTotal   uint64  `json:"memory_total" bson:"memory_total"`
+	MemUsed    uint64  `json:"memory_used" bson:"memory_used"`
+	MemFree    uint64  `json:"memory_free" bson:"memory_free"`
+	MemBuffers uint64  `json:"memory_buffers" bson:"memory_buffers"`
+	MemCached  uint64  `json:"memory_cached" bson:"memory_cached"`
+	LoadAVG1   float64 `json:"load_avg_1" bson:"load_avg_1"`
+	LoadAVG5   float64 `json:"load_avg_5" bson:"load_avg_5"`
+	LoadAVG15  float64 `json:"load_avg_15" bson:"load_avg_15"`
 }
 
 // 进程的内存占用等
 type ProcessInfo struct {
 	ClientKey       string `bson:"client_key"`
-	TimeString      string `json:"time_string"`
-	Uptime          int64  `json:"uptime"`
-	VirtualMemory   int64  `json:"virtual_memory"`
-	ResisdentMemory int64  `json:"resident_memory"`
-	SharedMemory    int64  `json:"shared_memory"`
+	TimeString      string `json:"time_string" bson:"time_string"`
+	Uptime          int64  `json:"uptime" bson:"uptime"`
+	VirtualMemory   int64  `json:"virtual_memory" bson:"virtual_memory"`
+	ResisdentMemory int64  `json:"resident_memory" bson:"resisdent_memory"`
+	SharedMemory    int64  `json:"shared_memory" bson:"shared_memory"`
 }
 
 // golang运行时的内存状态
 type RuntimeStatus struct {
 	ClientKey  string `bson:"client_key"`
-	TimeString string `json:"time_string"`
+	TimeString string `json:"time_string" bson:"time_string"`
 	// General statistics
-	Alloc   uint64 `json:"alloc_bytes"`
-	Sys     uint64 `json:"sys_bytes"`
-	Mallocs uint64 `json:"mallocs_bytes"`
-	Frees   uint64 `json:"frees_bytes"`
+	Alloc   uint64 `json:"alloc_bytes" bson:"alloc_bytes"`
+	Sys     uint64 `json:"sys_bytes" bson:"sys_bytes"`
+	Mallocs uint64 `json:"mallocs_bytes" bson:"mallocs_bytes"`
+	Frees   uint64 `json:"frees_bytes" bson:"frees_bytes"`
 
 	// Main allocation heap statistics
-	HeapAlloc   uint64 `json:"heap_alloc_bytes"`
-	HeapSys     uint64 `json:"heap_sys_bytes"`
-	HeapIdle    uint64 `json:"heap_idle_bytes"`
-	HeapInuse   uint64 `json:"heap_inuse_bytes"`
-	HeapObjects uint64 `json:"heap_objests"`
+	HeapAlloc   uint64 `json:"heap_alloc_bytes" bson:"heap_alloc_bytes"`
+	HeapSys     uint64 `json:"heap_sys_bytes" bson:"heap_sys_bytes"`
+	HeapIdle    uint64 `json:"heap_idle_bytes" bson:"heap_idle_bytes"`
+	HeapInuse   uint64 `json:"heap_inuse_bytes" bson:"heap_inuse_bytes"`
+	HeapObjects uint64 `json:"heap_objests" bson:"heap_objects"`
 
 	// stack statistics
-	StackInuse  uint64 `json:"stack_inuse_bytes"`
-	StackSys    uint64 `json:"stack_sys_bytes"`
-	MSpanInuse  uint64 `json:"mspan_inuse_bytes"`
-	MSpanSys    uint64 `json:"mspan_sys_bytes"`
-	MCacheInuse uint64 `json:"mcache_inuse_bytes"`
-	MCacheSys   uint64 `json:"mcache_sys_bytes"`
+	StackInuse  uint64 `json:"stack_inuse_bytes" bson:"stack_inuse_bytes"`
+	StackSys    uint64 `json:"stack_sys_bytes" bson:"stack_sys_bytes"`
+	MSpanInuse  uint64 `json:"mspan_inuse_bytes" bson:"mspan_inuse_bytes"`
+	MSpanSys    uint64 `json:"mspan_sys_bytes" bson:"mspan_sys_bytes"`
+	MCacheInuse uint64 `json:"mcache_inuse_bytes" bson:"mcache_inuse_bytes"`
+	MCacheSys   uint64 `json:"mcache_sys_bytes" bson:"mcache_sys_bytes"`
 
 	// GC status
-	GCPause          float64 `json:"gc_pause"`
-	GCPausePerSecond float64 `json:"gc_pause_per_second"`
-	GCPerSecond      float64 `json:"gc_per_second"`
-	GCTotalPause     float64 `json:"gc_total_pause"`
+	GCPause          float64 `json:"gc_pause" bson:"gc_pause"`
+	GCPausePerSecond float64 `json:"gc_pause_per_second" bson:"gc_pause_per_second"`
+	GCPerSecond      float64 `json:"gc_per_second" bson:"gc_per_second"`
+	GCTotalPause     float64 `json:"gc_total_pause" bson:"gc_total_pause"`
 
 	//Num of goroutines
-	Goroutines uint64 `json:"goroutines"`
+	Goroutines uint64 `json:"goroutines" bson:"goroutines"`
 }
 
 func GenerateUserCollection(client_key string) []*CollInfo {
@@ -155,16 +155,16 @@ func GenerateUserCollection(client_key string) []*CollInfo {
 	for idx := range REPORT_TYPE {
 		TYPE := REPORT_TYPE[idx]
 
-		coll_info_1_hour := &CollInfo{Name: client_key + "_" + TYPE + "_" + "1_hour", Size: 4096, Max: 720}
+		coll_info_1_hour := &CollInfo{Name: client_key + "_" + TYPE + "_" + "1_hour", Size: 1 << 19, Max: 720}
 		user_all_collection = append(user_all_collection, coll_info_1_hour)
 
-		coll_info_4_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "4_hours", Size: 8192, Max: 1440}
+		coll_info_4_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "4_hours", Size: 1 << 19, Max: 1440}
 		user_all_collection = append(user_all_collection, coll_info_4_hours)
 
-		coll_info_24_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "24_hours", Size: 8192, Max: 1440}
+		coll_info_24_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "24_hours", Size: 1 << 19, Max: 1440}
 		user_all_collection = append(user_all_collection, coll_info_24_hours)
 
-		coll_info_48_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "48_hours", Size: 4096, Max: 960}
+		coll_info_48_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "48_hours", Size: 1 << 19, Max: 960}
 		user_all_collection = append(user_all_collection, coll_info_48_hours)
 	}
 
@@ -220,8 +220,6 @@ func SystemReportHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println("SystemInfo:", system_info)
-
 	system_info.ClientKey = client_key
 
 	_, err = GetCollection("system").Upsert(bson.M{"client_key": client_key}, system_info)
@@ -240,6 +238,9 @@ func LoadReportHandler(w http.ResponseWriter, req *http.Request) {
 
 	var load_info LoadInfo
 
+	vars := mux.Vars(req)
+	client_key := vars["CLIENT_KEY"]
+
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		log.Printf("Read data from: [%s] failed.\n", req.RemoteAddr)
@@ -254,7 +255,15 @@ func LoadReportHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println("LoadInfo:", load_info)
+	// 保存每小时的数据
+	coll := client_key + "_load_1_hour"
+
+	load_info.ClientKey = client_key
+
+	err = GetCollection(coll).Insert(load_info)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func ProcessReportHandler(w http.ResponseWriter, req *http.Request) {
@@ -267,11 +276,8 @@ func ProcessReportHandler(w http.ResponseWriter, req *http.Request) {
 
 	var process_info ProcessInfo
 
-	/*
-		vars := mux.Vars(req)
-		CLIENT_KEY := vars["CLIENT_KEY"]
-		log.Println("CLIENT_KEY")
-	*/
+	vars := mux.Vars(req)
+	client_key := vars["CLIENT_KEY"]
 
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -287,7 +293,16 @@ func ProcessReportHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println("ProcessInfo:", process_info)
+	// 保存每小时的数据
+	coll := client_key + "_process_1_hour"
+
+	process_info.ClientKey = client_key
+
+	err = GetCollection(coll).Insert(process_info)
+	if err != nil {
+		log.Println(err)
+	}
+
 }
 
 func RuntimeReportHandler(w http.ResponseWriter, req *http.Request) {
@@ -300,11 +315,8 @@ func RuntimeReportHandler(w http.ResponseWriter, req *http.Request) {
 
 	var runtime_status RuntimeStatus
 
-	/*
-		vars := mux.Vars(req)
-		CLIENT_KEY := vars["CLIENT_KEY"]
-		log.Println("CLIENT_KEY")
-	*/
+	vars := mux.Vars(req)
+	client_key := vars["CLIENT_KEY"]
 
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -320,7 +332,16 @@ func RuntimeReportHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println("RuntimeStatus:", runtime_status)
+	// 保存每小时的数据
+	coll := client_key + "_runtime_1_hour"
+
+	runtime_status.ClientKey = client_key
+
+	err = GetCollection(coll).Insert(runtime_status)
+	if err != nil {
+		log.Println(err)
+	}
+
 }
 
 // 信号回调
