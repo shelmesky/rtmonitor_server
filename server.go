@@ -16,9 +16,55 @@ import (
 	"time"
 )
 
+const (
+	MONGO_URL             = "mongodb://127.0.0.1:27017/rtmonitor"
+	MONGO_CONNECT_TIMEOUT = 2 * time.Second
+)
+
 var (
 	signal_chan chan os.Signal // 处理信号的channel
+	MgoSession  *mgo.Session
+	REPORT_TYPE = []string{"load", "process", "runtime"}
 )
+
+func GetCollection(collection_name string) *mgo.Collection {
+	return MgoSession.DB("").C(collection_name)
+}
+
+func CreateCollection(collection_name string, size, max int) error {
+	collection := GetCollection(collection_name)
+
+	collection_info := mgo.CollectionInfo{DisableIdIndex: false, ForceIdIndex: true, Capped: true, MaxBytes: size, MaxDocs: max}
+
+	err := collection.Create(&collection_info)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func init() {
+	var err error
+
+	MgoSession, err = mgo.DialWithTimeout(MONGO_URL, MONGO_CONNECT_TIMEOUT)
+	if err != nil {
+		log.Printf("Connect to [%s] failed: %s\n", MONGO_URL, err)
+		os.Exit(1)
+	}
+
+	err = MgoSession.Ping()
+	if err != nil {
+		log.Println("Check connection failed:", err)
+		os.Exit(1)
+	}
+}
+
+type CollInfo struct {
+	Name string
+	Size int
+	Max  int
+}
 
 // 系统信息
 type SystemInfo struct {
@@ -91,6 +137,57 @@ type RuntimeStatus struct {
 	Goroutines uint64 `json:"goroutines"`
 }
 
+func GenerateUserCollection(client_key string) []*CollInfo {
+	var user_all_collection []*CollInfo
+
+	/*
+		1小时数据: 5秒/条，720条
+		4小时数据: 10秒/条，1440条
+		24小时数据: 60秒/条，1440条
+		48小时数据: 180秒/条，960条
+	*/
+
+	for idx := range REPORT_TYPE {
+		TYPE := REPORT_TYPE[idx]
+
+		coll_info_1_hour := &CollInfo{Name: client_key + "_" + TYPE + "_" + "1_hour", Size: 4096, Max: 720}
+		user_all_collection = append(user_all_collection, coll_info_1_hour)
+
+		coll_info_4_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "4_hours", Size: 8192, Max: 1440}
+		user_all_collection = append(user_all_collection, coll_info_4_hours)
+
+		coll_info_24_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "24_hours", Size: 8192, Max: 1440}
+		user_all_collection = append(user_all_collection, coll_info_24_hours)
+
+		coll_info_48_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "2_days", Size: 4096, Max: 960}
+		user_all_collection = append(user_all_collection, coll_info_48_hours)
+	}
+
+	return user_all_collection
+}
+
+func ClientCreateHandler(w http.ResponseWriter, req *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+			debug.PrintStack()
+		}
+	}()
+
+	vars := mux.Vars(req)
+	client_key := vars["CLIENT_KEY"]
+
+	user_collection_info := GenerateUserCollection(client_key)
+
+	for idx := range user_collection_info {
+		coll := user_collection_info[idx]
+		err := CreateCollection(coll.Name, coll.Size, coll.Max)
+		if err != nil {
+			log.Printf("User [%s] create collection failed: [%s]\n", client_key, err)
+		}
+	}
+}
+
 func SystemReportHandler(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -134,12 +231,6 @@ func LoadReportHandler(w http.ResponseWriter, req *http.Request) {
 	}()
 
 	var load_info LoadInfo
-
-	/*
-		vars := mux.Vars(req)
-		CLIENT_KEY := vars["CLIENT_KEY"]
-		log.Println("CLIENT_KEY")
-	*/
 
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -295,6 +386,7 @@ func main() {
 	router.HandleFunc("/api/{CLIENT_KEY}/report/load/", LoadReportHandler).Methods("POST")
 	router.HandleFunc("/api/{CLIENT_KEY}/report/process/", ProcessReportHandler).Methods("POST")
 	router.HandleFunc("/api/{CLIENT_KEY}/report/runtime/", RuntimeReportHandler).Methods("POST")
+	router.HandleFunc("/api/{CLIENT_KEY}/create/", ClientCreateHandler).Methods("POST")
 
 	s.SetKeepAlivesEnabled(true)
 
