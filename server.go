@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -68,21 +69,23 @@ type CollInfo struct {
 
 // 系统信息
 type SystemInfo struct {
-	Hostname     string `json:"host_name"`
-	Sysname      string `json:"sysname"`
-	Release      string `json:"release"`
-	Machine      string `json:"machine"`
-	CPUModelName string `json:"cpu_model_name"`
-	CPUFrequency string `json:"cpu_frequency"`
-	CPUCores     int    `json:"cpu_cores"`
-	Location     string `json:"Location"`
-	GOVersion    string `json:"go_version"`
-	ProcessID    int    `json:"process_id"`
-	CmdLine      string `json:"command_line"`
+	ClientKey    string `bson:"client_key"`
+	Hostname     string `json:"host_name" bson:"host_name"`
+	Sysname      string `json:"sysname" bson:"sysname"`
+	Release      string `json:"release" bson:"release"`
+	Machine      string `json:"machine" bson:"machine"`
+	CPUModelName string `json:"cpu_model_name" bson:"cpu_model_name"`
+	CPUFrequency string `json:"cpu_frequency" bson:"cpu_frequency"`
+	CPUCores     int    `json:"cpu_cores" bson:"cpu_cores"`
+	Location     string `json:"Location" bson:"location"`
+	GOVersion    string `json:"go_version" bson:"go_version"`
+	ProcessID    int    `json:"process_id" bson:"process_id"`
+	CmdLine      string `json:"command_line" bson:"command_line"`
 }
 
 // 内存和CPU负载信息
 type LoadInfo struct {
+	ClientKey  string  `bson:"client_key"`
 	TimeString string  `json:"time_string"`
 	MemTotal   uint64  `json:"memory_total"`
 	MemUsed    uint64  `json:"memory_used"`
@@ -96,6 +99,7 @@ type LoadInfo struct {
 
 // 进程的内存占用等
 type ProcessInfo struct {
+	ClientKey       string `bson:"client_key"`
 	TimeString      string `json:"time_string"`
 	Uptime          int64  `json:"uptime"`
 	VirtualMemory   int64  `json:"virtual_memory"`
@@ -105,6 +109,7 @@ type ProcessInfo struct {
 
 // golang运行时的内存状态
 type RuntimeStatus struct {
+	ClientKey  string `bson:"client_key"`
 	TimeString string `json:"time_string"`
 	// General statistics
 	Alloc   uint64 `json:"alloc_bytes"`
@@ -183,7 +188,7 @@ func ClientCreateHandler(w http.ResponseWriter, req *http.Request) {
 		coll := user_collection_info[idx]
 		err := CreateCollection(coll.Name, coll.Size, coll.Max)
 		if err != nil {
-			log.Printf("User [%s] create collection failed: [%s]\n", client_key, err)
+			log.Printf("User [%s] create collection [%s] failed: [%s]\n", client_key, coll.Name, err)
 		}
 	}
 }
@@ -198,11 +203,8 @@ func SystemReportHandler(w http.ResponseWriter, req *http.Request) {
 
 	var system_info SystemInfo
 
-	/*
-		vars := mux.Vars(req)
-		CLIENT_KEY := vars["CLIENT_KEY"]
-		log.Println("CLIENT_KEY")
-	*/
+	vars := mux.Vars(req)
+	client_key := vars["CLIENT_KEY"]
 
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -220,6 +222,12 @@ func SystemReportHandler(w http.ResponseWriter, req *http.Request) {
 
 	log.Println("SystemInfo:", system_info)
 
+	system_info.ClientKey = client_key
+
+	_, err = GetCollection("system").Upsert(bson.M{"client_key": client_key}, system_info)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func LoadReportHandler(w http.ResponseWriter, req *http.Request) {
@@ -313,7 +321,6 @@ func RuntimeReportHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	log.Println("RuntimeStatus:", runtime_status)
-
 }
 
 // 信号回调
