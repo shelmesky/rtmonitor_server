@@ -159,7 +159,7 @@ func GenerateUserCollection(client_key string) []*CollInfo {
 		coll_info_24_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "24_hours", Size: 8192, Max: 1440}
 		user_all_collection = append(user_all_collection, coll_info_24_hours)
 
-		coll_info_48_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "2_days", Size: 4096, Max: 960}
+		coll_info_48_hours := &CollInfo{Name: client_key + "_" + TYPE + "_" + "48_hours", Size: 4096, Max: 960}
 		user_all_collection = append(user_all_collection, coll_info_48_hours)
 	}
 
